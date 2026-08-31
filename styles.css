@@ -1,0 +1,1071 @@
+.protocol-structure-viewer {
+  --psv-border: var(--background-modifier-border);
+  --psv-soft-border: var(--background-modifier-border-hover);
+  width: 100%;
+  margin: 1em 0;
+  position: relative;
+  overflow: hidden;
+  color: var(--text-normal);
+  background: var(--background-primary);
+  border: 1px solid var(--psv-border);
+  border-radius: 10px;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 8%);
+}
+
+.psv-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 0.9rem;
+  background: var(--background-secondary);
+  border-bottom: 1px solid var(--psv-border);
+  border-radius: 9px 9px 0 0;
+}
+
+.psv-title {
+  min-width: 0;
+  overflow: hidden;
+  font-size: var(--font-ui-medium);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.psv-title-group {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0;
+}
+
+.psv-title-group .psv-title {
+  flex: 0 1 auto;
+}
+
+.psv-meta {
+  flex: none;
+  padding: 0.18rem 0.48rem;
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+  white-space: nowrap;
+  background: var(--background-primary);
+  border: 1px solid var(--psv-border);
+  border-radius: 999px;
+}
+
+.psv-breadcrumb-item {
+  position: relative;
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+}
+
+.psv-breadcrumb-item::before {
+  content: "/";
+  flex: none;
+  margin: 0 0.28rem;
+  color: var(--text-faint);
+  font-size: 1em;
+  line-height: 1;
+}
+
+.psv-breadcrumb-item[hidden],
+.psv-case-select[hidden] {
+  display: none;
+}
+
+.psv-select-shell {
+  position: relative;
+  display: inline-grid;
+  min-width: 0;
+  max-width: min(18rem, 42vw);
+  align-items: center;
+}
+
+.psv-select-shell > .psv-select-sizer {
+  grid-area: 1 / 1;
+}
+
+.psv-select-shell > select {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+
+.psv-select-sizer {
+  min-width: 0;
+  padding: 0.2rem 0.35rem;
+  overflow: hidden;
+  visibility: hidden;
+  color: var(--text-accent);
+  font-family: var(--font-interface);
+  font-size: var(--font-ui-small);
+  font-weight: 600;
+  white-space: pre;
+  pointer-events: none;
+}
+
+.psv-breadcrumb-item .psv-variant-select,
+.psv-breadcrumb-item .psv-case-select {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+  flex: none;
+  margin: 0;
+  padding: 0.2rem 0.35rem;
+  color: var(--text-accent);
+  font-family: var(--font-interface);
+  font-size: var(--font-ui-small);
+  font-weight: 600;
+  background: transparent;
+  border: 0;
+  border-radius: 4px;
+  box-shadow: none;
+  cursor: pointer;
+}
+
+.psv-breadcrumb-item .psv-variant-select:hover,
+.psv-breadcrumb-item .psv-case-select:hover {
+  background: var(--background-modifier-hover);
+}
+
+.psv-breadcrumb-item .psv-variant-select:focus-visible,
+.psv-breadcrumb-item .psv-case-select:focus-visible {
+  background: var(--background-modifier-hover);
+  outline: 2px solid var(--background-modifier-border-focus, var(--interactive-accent));
+  outline-offset: 1px;
+}
+
+.psv-lane-header {
+  display: flex;
+  padding: 0.55rem 0.85rem;
+  align-items: center;
+  background: color-mix(in srgb, var(--interactive-accent) 7%, var(--background-primary));
+  border-bottom: 1px solid var(--psv-border);
+}
+
+.psv-lane-name {
+  flex: none;
+  font-size: var(--font-ui-small);
+}
+
+.psv-all-variants {
+  padding: 0.75rem;
+  background: var(--background-secondary-alt, var(--background-secondary));
+}
+
+.psv-variant-lane {
+  overflow: hidden;
+  background: var(--background-primary);
+  border: 1px solid var(--psv-border);
+  border-radius: 7px;
+}
+
+.psv-variant-lane + .psv-variant-lane {
+  margin-top: 0.8rem;
+}
+
+.psv-variant-lane .psv-rows {
+  padding: 0.7rem;
+}
+
+.psv-variant-lane .psv-details {
+  border-radius: 0;
+}
+
+.psv-scroll {
+  width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+}
+
+.psv-rows {
+  width: 100%;
+  min-width: var(--psv-min-width);
+  padding: 0.8rem;
+  box-sizing: border-box;
+}
+
+.psv-row {
+  display: block;
+}
+
+.psv-row + .psv-row {
+  margin-top: 0.85rem;
+  padding-top: 0.85rem;
+  border-top: 1px dashed var(--psv-soft-border);
+}
+
+.psv-row-collapsed {
+  margin-top: 0.55rem !important;
+  padding-top: 0.55rem !important;
+}
+
+.psv-row-collapsed + .psv-row {
+  margin-top: 0.55rem;
+  padding-top: 0.55rem;
+}
+
+.psv-row-body {
+  min-width: 0;
+}
+
+.psv-byte-labels,
+.psv-field-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--psv-columns), minmax(0, 1fr));
+}
+
+.psv-byte {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 1.65rem;
+  color: var(--text-muted);
+  font-family: var(--font-monospace);
+  font-size: 0.7rem;
+  font-variant-numeric: tabular-nums;
+  background: var(--background-secondary);
+  border-top: 1px solid var(--psv-border);
+  border-bottom: 1px solid var(--psv-border);
+  border-left: 1px solid var(--psv-border);
+  box-sizing: border-box;
+}
+
+.psv-byte:last-child {
+  border-right: 1px solid var(--psv-border);
+}
+
+.psv-byte:first-child {
+  border-radius: 5px 0 0 0;
+}
+
+.psv-byte:last-child {
+  border-radius: 0 5px 0 0;
+}
+
+.psv-byte-ellipsis {
+  color: var(--text-faint);
+  font-size: 1rem;
+  font-weight: 700;
+  background: color-mix(in srgb, var(--background-secondary) 72%, var(--background-primary));
+  border-left-style: dashed;
+}
+
+.psv-field-grid {
+  min-height: 3.7rem;
+}
+
+.psv-field {
+  --psv-accent: var(--text-muted);
+  display: flex;
+  min-width: 0;
+  min-height: 3.7rem;
+  padding: 0.38rem 0.28rem;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.18rem;
+  overflow: hidden;
+  color: var(--text-normal);
+  text-align: center;
+  background: color-mix(in srgb, var(--psv-accent) 16%, var(--background-primary));
+  border-right: 1px solid color-mix(in srgb, var(--psv-accent) 35%, var(--psv-border));
+  border-bottom: 3px solid var(--psv-accent);
+  box-sizing: border-box;
+  cursor: pointer;
+}
+
+.psv-field:first-child {
+  border-radius: 0 0 0 5px;
+}
+
+.psv-field:last-child {
+  border-radius: 0 0 5px 0;
+}
+
+.psv-field:hover,
+.psv-field.is-hovered,
+.psv-field:focus-visible,
+.psv-field.is-selected {
+  background: color-mix(in srgb, var(--psv-accent) 25%, var(--background-primary));
+  outline: 2px solid var(--psv-accent);
+  outline-offset: -2px;
+}
+
+.psv-field-name {
+  width: 100%;
+  overflow: hidden;
+  font-size: 0.76rem;
+  font-weight: 650;
+  line-height: 1.15;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.psv-compact-field {
+  border-right-style: dashed;
+  border-left: 1px dashed color-mix(in srgb, var(--psv-accent) 45%, var(--psv-border));
+}
+
+.psv-compact-range {
+  width: 100%;
+  overflow: hidden;
+  color: var(--text-muted);
+  font-family: var(--font-monospace);
+  font-size: 0.68rem;
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.psv-collapsed-field {
+  width: 100%;
+  min-height: 2.65rem;
+  padding: 0.35rem 0.7rem;
+  flex-direction: row;
+  gap: 0.48rem;
+  border: 1px dashed color-mix(in srgb, var(--psv-accent) 55%, var(--psv-border));
+  border-bottom: 3px solid var(--psv-accent);
+  border-radius: 5px;
+}
+
+.psv-collapse-mark {
+  flex: none;
+  font-size: 1.35rem;
+  font-weight: 700;
+  line-height: 0.7;
+}
+
+.psv-collapse-field-name {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 0.76rem;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.psv-field-bit-preview {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  width: calc(100% - 0.2rem);
+  height: 0.42rem;
+  min-height: 0.42rem;
+  margin-top: 0.12rem;
+  overflow: hidden;
+  background: var(--background-primary);
+  border: 1px solid var(--psv-border);
+  border-radius: 2px;
+}
+
+.psv-field-bit {
+  --psv-accent: var(--text-faint);
+  min-width: 0;
+  background: var(--psv-accent);
+  border-left: 1px solid var(--background-primary);
+}
+
+.psv-field-bit:first-child {
+  border-left: 0;
+}
+
+.psv-field-bit.is-undefined {
+  background: var(--background-modifier-border);
+}
+
+.psv-gap {
+  color: var(--text-faint);
+  font-size: 0.68rem;
+  font-weight: normal;
+  background: repeating-linear-gradient(
+    -45deg,
+    var(--background-primary),
+    var(--background-primary) 6px,
+    var(--background-secondary) 6px,
+    var(--background-secondary) 12px
+  );
+  border-bottom-color: var(--psv-border);
+  cursor: default;
+}
+
+.psv-details {
+  border-top: 1px solid var(--psv-border);
+  border-radius: 0 0 9px 9px;
+}
+
+.psv-popover {
+  --psv-arrow-left: 2rem;
+  --psv-subfield-zoom-max-width: 48rem;
+  position: fixed;
+  z-index: var(--layer-popover, 1000);
+  width: min(68rem, calc(100vw - 1rem));
+  padding: 0;
+  color: var(--text-normal);
+  background: var(--background-primary);
+  border: 1px solid var(--background-modifier-border-focus);
+  border-radius: 8px;
+  box-shadow: 0 10px 30px rgb(0 0 0 / 24%);
+  animation: psv-popover-in 110ms ease-out;
+}
+
+.psv-popover.is-text-only {
+  width: max-content;
+  max-width: min(68rem, calc(100vw - 1rem));
+}
+
+.psv-popover.is-text-only .psv-detail {
+  width: max-content;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.psv-popover.is-text-only .psv-detail-description {
+  max-width: 68rem;
+  white-space: normal;
+}
+
+.psv-popover::before {
+  position: absolute;
+  top: -7px;
+  left: var(--psv-arrow-left);
+  width: 12px;
+  height: 12px;
+  content: "";
+  background: var(--background-primary);
+  border-top: 1px solid var(--background-modifier-border-focus);
+  border-left: 1px solid var(--background-modifier-border-focus);
+  transform: translateX(-50%) rotate(45deg);
+}
+
+.psv-popover.is-above::before {
+  top: auto;
+  bottom: -7px;
+  border: 0;
+  border-right: 1px solid var(--background-modifier-border-focus);
+  border-bottom: 1px solid var(--background-modifier-border-focus);
+}
+
+.psv-popover .psv-detail {
+  margin: 0;
+  padding: 0.75rem;
+  border: 0;
+  border-radius: 7px;
+}
+
+.psv-popover .psv-bit-labels,
+.psv-popover .psv-bit-grid {
+  grid-template-columns: repeat(8, minmax(2rem, 1fr));
+  min-width: 17rem;
+}
+
+.psv-popover .psv-stream-bit {
+  min-width: 1rem;
+  font-size: 0.56rem;
+}
+
+.psv-popover .psv-bit-number,
+.psv-popover .psv-stream-bit {
+  position: relative;
+}
+
+.psv-popover .psv-bit-number::after,
+.psv-popover .psv-stream-bit::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 100%;
+  width: 1px;
+  transform: translateX(-0.5px);
+  background: var(--psv-accent);
+}
+
+.psv-popover .psv-bit-number:last-child::after,
+.psv-popover .psv-stream-bit:last-child::after {
+  display: none;
+}
+
+.psv-popover .psv-detail-range {
+  display: none;
+}
+
+@keyframes psv-popover-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.985);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.psv-details-summary {
+  padding: 0.45rem 0.9rem;
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+  font-weight: 600;
+  background: var(--background-secondary);
+  cursor: pointer;
+  user-select: none;
+}
+
+.psv-detail-list {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
+  gap: 0.5rem;
+  padding: 0.75rem;
+}
+
+.psv-detail {
+  --psv-accent: var(--text-muted);
+  min-width: 0;
+  padding: 0.75rem;
+  background: color-mix(in srgb, var(--psv-accent) 7%, var(--background-primary));
+  border: 1px solid var(--psv-border);
+  border-left: 4px solid var(--psv-accent);
+  border-radius: 6px;
+}
+
+.psv-detail:focus {
+  outline: 2px solid var(--psv-accent);
+  outline-offset: 2px;
+}
+
+.psv-detail-heading {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.psv-swatch {
+  width: 0.65rem;
+  height: 0.65rem;
+  flex: none;
+  background: var(--psv-accent);
+  border-radius: 2px;
+}
+
+.psv-detail-range {
+  flex: none;
+  color: var(--text-accent);
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.psv-detail-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.psv-detail-length {
+  margin-left: auto;
+  flex: none;
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+}
+
+.psv-detail-description,
+.markdown-rendered p.psv-detail-description {
+  margin: 0.2rem 0 0;
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+  line-height: 1.5;
+}
+
+.psv-detail.psv-detail-flat {
+  padding-bottom: 0.35rem;
+}
+
+.psv-byte-fields {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  margin-top: 0.35rem;
+  padding-bottom: 0.3rem;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+}
+
+.psv-byte-field-canvas {
+  width: 100%;
+  min-width: var(--psv-byte-min-width);
+}
+
+.psv-byte-field-labels,
+.psv-byte-field-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--psv-byte-columns), minmax(0, 1fr));
+}
+
+.psv-byte-field-label {
+  --psv-accent: var(--text-faint);
+  padding: 0.3rem 0.2rem;
+  color: var(--text-normal);
+  font-family: var(--font-monospace);
+  font-size: 0.66rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  background: color-mix(in srgb, var(--psv-accent) 30%, var(--background-primary));
+  border: 1px solid color-mix(in srgb, var(--psv-accent) 70%, var(--psv-border));
+  border-right: 0;
+  box-sizing: border-box;
+}
+
+.psv-byte-field-label:last-child {
+  border-right: 1px solid color-mix(in srgb, var(--psv-accent) 70%, var(--psv-border));
+}
+
+.psv-byte-field-grid {
+  min-height: 3.6rem;
+}
+
+.psv-byte-subfield {
+  --psv-accent: var(--text-faint);
+  display: flex;
+  min-width: 0;
+  padding: 0.38rem 0.3rem;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.16rem;
+  overflow: hidden;
+  text-align: center;
+  background: color-mix(in srgb, var(--psv-accent) 18%, var(--background-primary));
+  border: 2px solid var(--psv-accent);
+  box-sizing: border-box;
+}
+
+.psv-byte-subfield + .psv-byte-subfield {
+  border-left-width: 3px;
+}
+
+.psv-byte-subfield-name {
+  width: 100%;
+  overflow: hidden;
+  font-family: var(--font-monospace);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.psv-byte-subfield-description {
+  width: 100%;
+  overflow: hidden;
+  color: var(--text-muted);
+  font-size: 0.63rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.psv-byte-subfield-undefined {
+  color: var(--text-faint);
+  background: repeating-linear-gradient(
+    -45deg,
+    var(--background-primary),
+    var(--background-primary) 5px,
+    var(--background-secondary) 5px,
+    var(--background-secondary) 10px
+  );
+  border-color: var(--psv-border);
+}
+
+.psv-bits {
+  margin-top: 0.35rem;
+  width: 100%;
+  overflow-x: auto;
+}
+
+.psv-bit-labels,
+.psv-bit-grid {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(3.5rem, 1fr));
+  min-width: 28rem;
+}
+
+.psv-bit-number {
+  --psv-accent: var(--text-faint);
+  padding: 0.28rem 0.18rem;
+  color: var(--text-normal);
+  font-family: var(--font-monospace);
+  font-size: 0.66rem;
+  font-weight: 650;
+  text-align: center;
+  background: color-mix(in srgb, var(--psv-accent) 34%, var(--background-primary));
+  border: 1px solid color-mix(in srgb, var(--psv-accent) 68%, var(--psv-border));
+  border-right: 0;
+}
+
+.psv-bit-number:last-child {
+  border-right: 1px solid color-mix(in srgb, var(--psv-accent) 68%, var(--psv-border));
+}
+
+.psv-bit-number.is-undefined {
+  color: var(--text-faint);
+  background: repeating-linear-gradient(
+    -45deg,
+    var(--background-primary),
+    var(--background-primary) 4px,
+    var(--background-secondary) 4px,
+    var(--background-secondary) 8px
+  );
+}
+
+.psv-bit-field {
+  --psv-accent: var(--text-muted);
+  display: flex;
+  min-width: 0;
+  min-height: 3.55rem;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  overflow: hidden;
+  text-align: center;
+  background: color-mix(in srgb, var(--psv-accent) 18%, var(--background-primary));
+  border: 2px solid var(--psv-accent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--psv-accent) 24%, transparent);
+}
+
+.psv-popover .psv-subfield-expandable {
+  cursor: zoom-in;
+  transition: background-color 100ms ease-out, outline-color 100ms ease-out;
+}
+
+.psv-popover .psv-subfield-expandable:hover,
+.psv-popover .psv-subfield-expandable:focus-visible,
+.psv-popover .psv-subfield-expandable.is-subfield-zoomed {
+  background: color-mix(in srgb, var(--psv-accent) 28%, var(--background-primary));
+  outline: 2px solid var(--psv-accent);
+  outline-offset: -2px;
+}
+
+.psv-popover .psv-subfield-expandable.is-subfield-zoomed {
+  cursor: zoom-out;
+}
+
+.psv-subfield-zoom-panel {
+  --psv-accent: var(--text-muted);
+  width: max-content;
+  max-width: min(var(--psv-subfield-zoom-max-width), calc(100vw - 3rem), 100%);
+  margin: 0.7rem auto 0;
+  padding: 0.7rem 0.8rem;
+  color: var(--text-normal);
+  background: color-mix(in srgb, var(--psv-accent) 18%, var(--background-primary));
+  border: 2px solid var(--psv-accent);
+  border-radius: 7px;
+  box-shadow: 0 5px 16px rgb(0 0 0 / 14%);
+  box-sizing: border-box;
+  animation: psv-subfield-zoom-in 100ms ease-out;
+}
+
+.psv-subfield-zoom-panel[hidden] {
+  display: none;
+}
+
+.psv-subfield-zoom-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.psv-subfield-zoom-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-family: var(--font-monospace);
+  font-size: var(--font-ui-small);
+}
+
+.psv-subfield-zoom-description {
+  max-height: min(45vh, 24rem);
+  margin-top: 0.55rem;
+  overflow: auto;
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+  text-align: left;
+  white-space: normal;
+}
+
+@keyframes psv-subfield-zoom-in {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.psv-bit-field + .psv-bit-field {
+  border-left-width: 3px;
+}
+
+.psv-bit-heading {
+  display: flex;
+  min-height: 2.05rem;
+  padding: 0.28rem 0.35rem 0.18rem;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.12rem;
+}
+
+.psv-bit-name {
+  width: 100%;
+  overflow: hidden;
+  font-family: var(--font-monospace);
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.psv-bit-description {
+  width: 100%;
+  min-height: 1.35rem;
+  padding: 0.12rem 0.3rem 0.22rem;
+  overflow: hidden;
+  color: var(--text-muted);
+  font-size: 0.6rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.psv-bit-undefined {
+  --psv-accent: var(--text-faint);
+  color: var(--text-faint);
+  background: repeating-linear-gradient(
+    -45deg,
+    var(--background-primary),
+    var(--background-primary) 5px,
+    var(--background-secondary) 5px,
+    var(--background-secondary) 10px
+  );
+}
+
+.psv-stream-bits {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  margin-top: 0.35rem;
+  padding-bottom: 0.3rem;
+  overflow-x: scroll;
+  overscroll-behavior-x: contain;
+  scrollbar-gutter: stable;
+}
+
+.psv-stream-canvas {
+  width: 100%;
+  min-width: var(--psv-stream-min-width);
+}
+
+.psv-stream-byte-labels,
+.psv-stream-bit-labels,
+.psv-stream-field-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--psv-stream-bits), minmax(0, 1fr));
+}
+
+.psv-stream-byte {
+  --psv-accent: var(--text-faint);
+  display: flex;
+  padding: 0.24rem 0.15rem;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-normal);
+  font-family: var(--font-monospace);
+  font-size: 0.66rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  background: color-mix(in srgb, var(--psv-accent) 30%, var(--background-primary));
+  border: 2px solid color-mix(in srgb, var(--psv-accent) 78%, var(--psv-border));
+  border-right-width: 1px;
+  box-sizing: border-box;
+}
+
+.psv-stream-byte:last-child {
+  border-right-width: 2px;
+}
+
+.psv-stream-byte + .psv-stream-byte {
+  border-left-width: 2px;
+}
+
+.psv-stream-bit {
+  --psv-accent: var(--text-faint);
+  min-width: 2rem;
+  padding: 0.28rem 0.08rem;
+  color: var(--text-normal);
+  font-family: var(--font-monospace);
+  font-size: 0.6rem;
+  font-weight: 700;
+  text-align: center;
+  background: color-mix(in srgb, var(--psv-accent) 58%, var(--background-primary));
+  border-right: 1px solid color-mix(in srgb, var(--psv-accent) 82%, var(--psv-border));
+  border-bottom: 1px solid var(--psv-border);
+}
+
+.psv-stream-bit:nth-child(8n + 1) {
+  border-left: 2px solid var(--text-faint);
+}
+
+.psv-stream-bit.is-undefined {
+  color: var(--text-faint);
+  background: var(--background-secondary);
+}
+
+.psv-stream-field-grid {
+  min-height: 3.6rem;
+}
+
+.psv-stream-field {
+  --psv-accent: var(--text-faint);
+  display: flex;
+  min-width: 0;
+  padding: 0.35rem 0.25rem;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.15rem;
+  overflow: hidden;
+  text-align: center;
+  background: color-mix(in srgb, var(--psv-accent) 18%, var(--background-primary));
+  border: 2px solid var(--psv-accent);
+}
+
+.psv-stream-field + .psv-stream-field {
+  border-left-width: 3px;
+}
+
+.psv-stream-name {
+  width: 100%;
+  overflow: hidden;
+  font-family: var(--font-monospace);
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.psv-stream-description {
+  width: 100%;
+  overflow: hidden;
+  color: var(--text-muted);
+  font-size: 0.61rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.psv-stream-undefined {
+  color: var(--text-faint);
+  background: repeating-linear-gradient(
+    -45deg,
+    var(--background-primary),
+    var(--background-primary) 5px,
+    var(--background-secondary) 5px,
+    var(--background-secondary) 10px
+  );
+  border-color: var(--psv-border);
+}
+
+.psv-stream-bits::-webkit-scrollbar {
+  height: 11px;
+}
+
+.psv-stream-bits::-webkit-scrollbar-track {
+  background: var(--background-secondary);
+  border-radius: 999px;
+}
+
+.psv-stream-bits::-webkit-scrollbar-thumb {
+  background: var(--background-modifier-border-focus);
+  border: 2px solid var(--background-secondary);
+  border-radius: 999px;
+}
+
+.psv-stream-bits::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+.psv-color-0 { --psv-accent: var(--color-blue); }
+.psv-color-1 { --psv-accent: var(--color-green); }
+.psv-color-2 { --psv-accent: var(--color-orange); }
+.psv-color-3 { --psv-accent: var(--color-purple); }
+.psv-color-4 { --psv-accent: var(--color-cyan); }
+.psv-color-5 { --psv-accent: var(--color-pink); }
+.psv-color-6 { --psv-accent: var(--color-yellow); }
+.psv-color-7 { --psv-accent: var(--color-red); }
+
+.protocol-structure-error {
+  margin: 1em 0;
+  padding: 0.75rem 0.9rem;
+  color: var(--text-error);
+  background: var(--background-modifier-error);
+  border: 1px solid var(--background-modifier-error-hover);
+  border-radius: 6px;
+}
+
+.psv-error-title {
+  display: block;
+  margin-bottom: 0.25rem;
+}
+
+.psv-error-message {
+  font-family: var(--font-monospace);
+  font-size: var(--font-ui-small);
+}
+
+@media (max-width: 600px) {
+  .psv-header {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+
+  .psv-title-group {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .psv-variant-select,
+  .psv-case-select {
+    max-width: 100%;
+  }
+
+  .psv-all-variants {
+    padding: 0.5rem;
+  }
+
+  .psv-detail-heading {
+    flex-wrap: wrap;
+  }
+
+  .psv-detail-length {
+    margin-left: 0;
+  }
+}
+
+@media print {
+  .protocol-structure-viewer {
+    break-inside: avoid;
+    box-shadow: none;
+  }
+
+  .psv-scroll {
+    overflow: visible;
+  }
+}

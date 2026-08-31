@@ -1,0 +1,9 @@
+{
+  "id": "protocol-structure-viewer",
+  "name": "Protocol Structure Viewer",
+  "version": "1.7.2",
+  "minAppVersion": "1.5.0",
+  "description": "Render concise protocol field definitions as responsive byte and bit structure diagrams.",
+  "author": "Local",
+  "isDesktopOnly": false
+}
