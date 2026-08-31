@@ -384,3 +384,7 @@ styles.css
 @endcase
 @endvariant
 ```
+
+## 许可证
+
+本项目采用 [MIT License](LICENSE)。
