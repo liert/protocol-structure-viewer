@@ -200,9 +200,9 @@
   border-top: 1px dashed var(--psv-soft-border);
 }
 
-.psv-row-collapsed {
-  margin-top: 0.55rem !important;
-  padding-top: 0.55rem !important;
+.psv-row.psv-row-collapsed {
+  margin-top: 0.55rem;
+  padding-top: 0.55rem;
 }
 
 .psv-row-collapsed + .psv-row {
@@ -1061,7 +1061,6 @@
 
 @media print {
   .protocol-structure-viewer {
-    break-inside: avoid;
     box-shadow: none;
   }
 

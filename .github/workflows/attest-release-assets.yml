@@ -1,0 +1,42 @@
+name: Attest release assets
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to attest
+        required: true
+        default: "1.7.3"
+
+jobs:
+  attest:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+      artifact-metadata: write
+    steps:
+      - name: Check out release
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name || inputs.tag }}
+          persist-credentials: false
+
+      - name: Validate release assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f main.js
+          test -f manifest.json
+          test -f styles.css
+
+      - name: Attest release assets
+        uses: actions/attest@v4
+        with:
+          subject-path: |
+            ${{ github.workspace }}/main.js
+            ${{ github.workspace }}/manifest.json
+            ${{ github.workspace }}/styles.css

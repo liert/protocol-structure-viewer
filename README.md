@@ -1,5 +1,54 @@
 # Protocol Structure Viewer
 
+Protocol Structure Viewer renders binary protocols, packets, and register layouts as responsive byte and bit diagrams in Obsidian. Define a layout with a concise `protocol` code block—no HTML, SVG, or YAML required.
+
+## Features
+
+- Display fixed-size byte layouts with configurable bytes per row.
+- Describe single-byte bit fields and continuous multi-byte bit streams.
+- Model mutually exclusive layouts with variants and nested cases.
+- Inspect field details, highlight wrapped fields, and collapse long unused ranges.
+- Detect invalid ranges, overlaps, and out-of-bounds fields with line-numbered errors.
+
+## Installation
+
+### Community plugins
+
+After the plugin is accepted into the Obsidian Community directory:
+
+1. Open **Settings → Community plugins** in Obsidian.
+2. Select **Browse** and search for **Protocol Structure Viewer**.
+3. Select **Install**, then select **Enable**.
+
+### Manual installation
+
+1. Download `main.js`, `manifest.json`, and `styles.css` from the latest GitHub release.
+2. Create `<Vault>/.obsidian/plugins/protocol-structure-viewer/`.
+3. Copy the downloaded files into that directory.
+4. Reload Obsidian, then enable **Protocol Structure Viewer** under **Settings → Community plugins**.
+
+## Usage
+
+Add a `protocol` code block to a Markdown note. Text enclosed in `<...>` is a placeholder that should be replaced with your own field names and descriptions.
+
+````markdown
+```protocol
+@name <Protocol name>
+@size 4
+@row 16
+
+0x00 | <Header field> | <Header description>
+  bit 7..4 | <Bit field A> | <Bit field A description>
+  bit 3..0 | <Bit field B> | <Bit field B description>
+0x01..0x02 | <Payload field> | <Payload description>
+0x03 | <Checksum field> | <Checksum description>
+```
+````
+
+The plugin renders the code block in Reading view. Click a colored field to inspect its range, length, description, and byte or bit subfields.
+
+## 中文文档
+
 Protocol Structure Viewer 是一个用于展示二进制协议、数据包和寄存器布局的 Obsidian 插件。用户只需在 `protocol` 代码块中编写简洁文本，不需要编写 HTML、SVG 或 YAML。
 
 ## 功能
