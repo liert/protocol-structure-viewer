@@ -8,7 +8,7 @@ on:
       tag:
         description: Release tag to attest
         required: true
-        default: "1.7.3"
+        default: "1.8.0"
 
 jobs:
   attest:

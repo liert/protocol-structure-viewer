@@ -1,6 +1,12 @@
 "use strict";
 
-const { MarkdownRenderChild, Plugin } = require("obsidian");
+const {
+  MarkdownRenderChild,
+  MarkdownRenderer,
+  Plugin,
+  PluginSettingTab,
+  Setting,
+} = require("obsidian");
 
 const LANGUAGES = ["protocol", "packet-structure"];
 const DEFAULT_BYTES_PER_ROW = 16;
@@ -8,6 +14,13 @@ const MAX_PACKET_SIZE = 4096;
 const MAX_BYTES_PER_ROW = 32;
 const COLOR_COUNT = 8;
 const MAX_VISIBLE_FIELD_ROWS = 3;
+
+const DEFAULT_SETTINGS = {
+  bytesPerRow: DEFAULT_BYTES_PER_ROW,
+  detailsOpen: false,
+  showBitPreview: true,
+  bitOrder: "msb",
+};
 
 class ProtocolSyntaxError extends Error {
   constructor(lineNumber, message) {
@@ -160,6 +173,34 @@ function requireDirectiveValue(directive, lineNumber) {
   return directive.value;
 }
 
+function parseBitOrder(value, lineNumber) {
+  const normalized = String(value).trim().toLowerCase();
+  if (
+    normalized === "msb" ||
+    normalized === "msb-first" ||
+    normalized === "big" ||
+    normalized === "be" ||
+    normalized === "7..0" ||
+    normalized === "7-0"
+  ) {
+    return "msb";
+  }
+  if (
+    normalized === "lsb" ||
+    normalized === "lsb-first" ||
+    normalized === "little" ||
+    normalized === "le" ||
+    normalized === "0..7" ||
+    normalized === "0-7"
+  ) {
+    return "lsb";
+  }
+  throw new ProtocolSyntaxError(
+    lineNumber,
+    `不支持的位序“${value}”，应为 msb-first（或 msb）或 lsb-first（或 lsb）`,
+  );
+}
+
 function applyGlobalDirective(directive, lineNumber, config) {
   const { key } = directive;
   const value = requireDirectiveValue(directive, lineNumber);
@@ -173,6 +214,22 @@ function applyGlobalDirective(directive, lineNumber, config) {
   }
   if (key === "row" || key === "columns" || key === "bytes-per-row") {
     config.bytesPerRow = parseInteger(value, lineNumber, "每行字节数");
+    return;
+  }
+  if (key === "details") {
+    const normalized = value.toLowerCase();
+    if (normalized === "open" || normalized === "expanded" || normalized === "true") {
+      config.detailsOpen = true;
+      return;
+    }
+    if (normalized === "closed" || normalized === "collapsed" || normalized === "false") {
+      config.detailsOpen = false;
+      return;
+    }
+    throw new ProtocolSyntaxError(lineNumber, `@details 的值应为 open 或 closed`);
+  }
+  if (key === "bit-order" || key === "bitorder" || key === "endian") {
+    config.bitOrder = parseBitOrder(value, lineNumber);
     return;
   }
 
@@ -349,11 +406,26 @@ function createVariantOverviewConfig(config, variant) {
   );
 }
 
-function parseProtocol(source) {
+function parseProtocol(source, options = {}) {
+  const defaultBytesPerRow =
+    options && Number.isSafeInteger(options.bytesPerRow) && options.bytesPerRow >= 1
+      ? options.bytesPerRow
+      : DEFAULT_BYTES_PER_ROW;
+
+  const defaultBitOrder =
+    options && (options.bitOrder === "lsb" || options.bitOrder === "lsb-first")
+      ? "lsb"
+      : "msb";
+
   const config = {
     name: "协议结构",
     size: null,
-    bytesPerRow: DEFAULT_BYTES_PER_ROW,
+    bytesPerRow: defaultBytesPerRow,
+    detailsOpen:
+      options && options.detailsOpen !== undefined
+        ? Boolean(options.detailsOpen)
+        : false,
+    bitOrder: defaultBitOrder,
     fields: [],
     variants: [],
   };
@@ -536,10 +608,33 @@ function parseProtocol(source) {
       }
 
       const fieldColumns = [...columns];
-      const compact = fieldColumns.at(-1).toLowerCase() === "@compact";
-      if (compact) {
-        fieldColumns.pop();
+      let compact = false;
+      let fieldBitOrder = null;
+
+      while (fieldColumns.length > 2) {
+        const lastCol = fieldColumns.at(-1).toLowerCase();
+        if (lastCol === "@compact") {
+          compact = true;
+          fieldColumns.pop();
+        } else if (
+          lastCol === "@lsb" ||
+          lastCol === "@lsb-first" ||
+          lastCol === "@little"
+        ) {
+          fieldBitOrder = "lsb";
+          fieldColumns.pop();
+        } else if (
+          lastCol === "@msb" ||
+          lastCol === "@msb-first" ||
+          lastCol === "@big"
+        ) {
+          fieldBitOrder = "msb";
+          fieldColumns.pop();
+        } else {
+          break;
+        }
       }
+
       const range = parseRange(fieldColumns[0], lineNumber, "字节范围");
       currentField = {
         ...range,
@@ -548,6 +643,7 @@ function parseProtocol(source) {
         bitfields: [],
         bytefields: [],
         compact,
+        bitOrder: fieldBitOrder,
         lineNumber,
       };
       const fields = currentCase
@@ -687,14 +783,19 @@ function formatByteRange(start, end, width) {
   return start === end ? first : `${first}–0x${formatOffset(end, width)}`;
 }
 
-function appendBitPreview(parent, field) {
+function appendBitPreview(parent, field, defaultBitOrder = "msb") {
   if (field.bitfields.length === 0 || field.start !== field.end) {
     return;
   }
 
+  const isLsb = (field.bitOrder || defaultBitOrder) === "lsb";
   const preview = createElement("div", "psv-field-bit-preview");
   preview.setAttribute("aria-hidden", "true");
-  for (let bit = 7; bit >= 0; bit -= 1) {
+  const bitSequence = isLsb
+    ? [0, 1, 2, 3, 4, 5, 6, 7]
+    : [7, 6, 5, 4, 3, 2, 1, 0];
+
+  for (const bit of bitSequence) {
     const index = field.bitfields.findIndex(
       (bitfield) => bit >= bitfield.start && bit <= bitfield.end,
     );
@@ -753,6 +854,7 @@ function renderBytefields(parent, field) {
     if (bytefield.start > cursor) {
       const gap = createElement("div", "psv-byte-subfield psv-byte-subfield-undefined", "未定义");
       gap.style.gridColumn = `${cursor + 1} / span ${bytefield.start - cursor}`;
+      gap.style.gridRow = "1";
       grid.append(gap);
     }
 
@@ -763,6 +865,7 @@ function renderBytefields(parent, field) {
     );
     addSubfieldZoomData(item, bytefield);
     item.style.gridColumn = `${bytefield.start + 1} / span ${bytefield.end - bytefield.start + 1}`;
+    item.style.gridRow = "1";
     item.append(createElement("span", "psv-byte-subfield-name", bytefield.name));
     if (bytefield.description) {
       item.append(
@@ -779,6 +882,7 @@ function renderBytefields(parent, field) {
   if (cursor < totalBytes) {
     const gap = createElement("div", "psv-byte-subfield psv-byte-subfield-undefined", "未定义");
     gap.style.gridColumn = `${cursor + 1} / span ${totalBytes - cursor}`;
+    gap.style.gridRow = "1";
     grid.append(gap);
   }
 
@@ -787,7 +891,8 @@ function renderBytefields(parent, field) {
   parent.append(section);
 }
 
-function renderStreamBitfields(parent, field) {
+function renderStreamBitfields(parent, field, defaultBitOrder = "msb") {
+  const isLsb = (field.bitOrder || defaultBitOrder) === "lsb";
   const totalBits = (field.end - field.start + 1) * 8;
   const width = hexWidth(field.end + 1);
   const section = createElement("div", "psv-stream-bits");
@@ -814,13 +919,14 @@ function renderStreamBitfields(parent, field) {
     const index = field.bitfields.findIndex(
       (bitfield) => position >= bitfield.start && position <= bitfield.end,
     );
+    const bitNumber = isLsb ? position % 8 : 7 - (position % 8);
     bitLabels.append(
       createElement(
         "span",
         index >= 0
           ? `psv-stream-bit psv-color-${(field.color + index + 1) % COLOR_COUNT}`
           : "psv-stream-bit is-undefined",
-        `bit ${7 - (position % 8)}`,
+        `bit ${bitNumber}`,
       ),
     );
   }
@@ -834,6 +940,7 @@ function renderStreamBitfields(parent, field) {
     if (bitfield.start > cursor) {
       const gap = createElement("div", "psv-stream-field psv-stream-undefined", "未定义");
       gap.style.gridColumn = `${cursor + 1} / span ${bitfield.start - cursor}`;
+      gap.style.gridRow = "1";
       fieldGrid.append(gap);
     }
 
@@ -845,6 +952,7 @@ function renderStreamBitfields(parent, field) {
     );
     addSubfieldZoomData(item, bitfield);
     item.style.gridColumn = `${bitfield.start + 1} / span ${bitfield.end - bitfield.start + 1}`;
+    item.style.gridRow = "1";
     item.append(createElement("span", "psv-stream-name", bitfield.name));
     if (bitfield.description) {
       item.append(
@@ -857,6 +965,7 @@ function renderStreamBitfields(parent, field) {
   if (cursor < totalBits) {
     const gap = createElement("div", "psv-stream-field psv-stream-undefined", "未定义");
     gap.style.gridColumn = `${cursor + 1} / span ${totalBits - cursor}`;
+    gap.style.gridRow = "1";
     fieldGrid.append(gap);
   }
 
@@ -865,18 +974,23 @@ function renderStreamBitfields(parent, field) {
   parent.append(section);
 }
 
-function renderBitfields(parent, field) {
+function renderBitfields(parent, field, defaultBitOrder = "msb") {
   if (field.bitfields.length === 0) {
     return;
   }
   if (field.start !== field.end) {
-    renderStreamBitfields(parent, field);
+    renderStreamBitfields(parent, field, defaultBitOrder);
     return;
   }
 
+  const isLsb = (field.bitOrder || defaultBitOrder) === "lsb";
   const bitSection = createElement("div", "psv-bits");
   const labels = createElement("div", "psv-bit-labels");
-  for (let bit = 7; bit >= 0; bit -= 1) {
+  const bitSequence = isLsb
+    ? [0, 1, 2, 3, 4, 5, 6, 7]
+    : [7, 6, 5, 4, 3, 2, 1, 0];
+
+  for (const bit of bitSequence) {
     const index = field.bitfields.findIndex(
       (bitfield) => bit >= bitfield.start && bit <= bitfield.end,
     );
@@ -892,17 +1006,40 @@ function renderBitfields(parent, field) {
   }
 
   const grid = createElement("div", "psv-bit-grid");
-  const occupied = new Set();
-  field.bitfields.forEach((bitfield, index) => {
-    const color = (field.color + index + 1) % COLOR_COUNT;
+  const sortedEntries = field.bitfields
+    .map((bitfield, originalIndex) => {
+      const startColumn = isLsb ? bitfield.start + 1 : 8 - bitfield.end;
+      const span = bitfield.end - bitfield.start + 1;
+      return {
+        bitfield,
+        originalIndex,
+        startColumn,
+        span,
+      };
+    })
+    .sort((left, right) => left.startColumn - right.startColumn);
+
+  let cursor = 1;
+  for (const { bitfield, originalIndex, startColumn, span } of sortedEntries) {
+    if (startColumn > cursor) {
+      const gapSpan = startColumn - cursor;
+      const gap = createElement("div", "psv-bit-field psv-bit-undefined");
+      gap.style.gridColumn = `${cursor} / span ${gapSpan}`;
+      gap.style.gridRow = "1";
+      const heading = createElement("div", "psv-bit-heading");
+      heading.append(createElement("span", "psv-bit-name", "未定义"));
+      gap.append(heading);
+      grid.append(gap);
+    }
+
+    const color = (field.color + originalIndex + 1) % COLOR_COUNT;
     const item = createElement(
       "div",
       `psv-bit-field psv-color-${color}`,
     );
     addSubfieldZoomData(item, bitfield);
-    const startColumn = 8 - bitfield.end;
-    const span = bitfield.end - bitfield.start + 1;
     item.style.gridColumn = `${startColumn} / span ${span}`;
+    item.style.gridRow = "1";
     item.title = bitfield.description
       ? `${bitfield.name}: ${bitfield.description}`
       : bitfield.name;
@@ -916,29 +1053,20 @@ function renderBitfields(parent, field) {
       );
     }
     grid.append(item);
-    for (let bit = bitfield.start; bit <= bitfield.end; bit += 1) {
-      occupied.add(bit);
-    }
-  });
+    cursor = startColumn + span;
+  }
 
-  let bit = 7;
-  while (bit >= 0) {
-    if (occupied.has(bit)) {
-      bit -= 1;
-      continue;
-    }
-    const end = bit;
-    while (bit >= 0 && !occupied.has(bit)) {
-      bit -= 1;
-    }
-    const start = bit + 1;
-    const item = createElement("div", "psv-bit-field psv-bit-undefined");
-    item.style.gridColumn = `${8 - end} / span ${end - start + 1}`;
+  if (cursor <= 8) {
+    const gapSpan = 9 - cursor;
+    const gap = createElement("div", "psv-bit-field psv-bit-undefined");
+    gap.style.gridColumn = `${cursor} / span ${gapSpan}`;
+    gap.style.gridRow = "1";
     const heading = createElement("div", "psv-bit-heading");
     heading.append(createElement("span", "psv-bit-name", "未定义"));
-    item.append(heading);
-    grid.append(item);
+    gap.append(heading);
+    grid.append(gap);
   }
+
   bitSection.append(labels, grid);
   parent.append(bitSection);
 }
@@ -955,8 +1083,39 @@ function appendTextWithLineBreaks(parent, text) {
   });
 }
 
-function renderDetails(parent, config, detailElements) {
+function renderMarkdownHelper(app, markdown, container, sourcePath, component) {
+  if (app && MarkdownRenderer && typeof MarkdownRenderer.render === "function") {
+    container.replaceChildren();
+    try {
+      const promise = MarkdownRenderer.render(
+        app,
+        markdown,
+        container,
+        sourcePath || "",
+        component,
+      );
+      if (promise && typeof promise.then === "function") {
+        return promise.catch((error) => {
+          console.error("Protocol Structure Viewer markdown render error:", error);
+          container.replaceChildren();
+          appendTextWithLineBreaks(container, markdown);
+        });
+      }
+      return Promise.resolve();
+    } catch (error) {
+      console.error("Protocol Structure Viewer markdown render error:", error);
+    }
+  }
+  container.replaceChildren();
+  appendTextWithLineBreaks(container, markdown);
+  return Promise.resolve();
+}
+
+function renderDetails(parent, config, detailElements, context = {}) {
   const details = createElement("details", "psv-details");
+  if (config.detailsOpen) {
+    details.open = true;
+  }
   details.append(
     createElement(
       "summary",
@@ -991,12 +1150,18 @@ function renderDetails(parent, config, detailElements) {
     );
     article.append(heading);
     if (field.description) {
-      const description = createElement("p", "psv-detail-description");
-      appendTextWithLineBreaks(description, field.description);
+      const description = createElement("div", "psv-detail-description");
+      renderMarkdownHelper(
+        context.app,
+        field.description,
+        description,
+        context.sourcePath,
+        context.lifecycle,
+      );
       article.append(description);
     }
     renderBytefields(article, field);
-    renderBitfields(article, field);
+    renderBitfields(article, field, config.bitOrder);
     if (field.bitfields.length === 0 && field.bytefields.length === 0) {
       article.classList.add("psv-detail-flat");
     }
@@ -1015,6 +1180,7 @@ function createFieldSegment(
   rowStart,
   width,
   segmentElements,
+  options = {},
 ) {
   const segment = createElement(
     "div",
@@ -1028,7 +1194,9 @@ function createFieldSegment(
     `${formatByteRange(field.start, field.end, width)} ${field.name}`,
   );
   segment.append(createElement("span", "psv-field-name", field.name));
-  appendBitPreview(segment, field);
+  if (options.showBitPreview !== false) {
+    appendBitPreview(segment, field, options.bitOrder);
+  }
   segmentElements.push({ segment, fieldIndex: field.index });
   return segment;
 }
@@ -1087,7 +1255,7 @@ function createCollapsedRow(collapse, segmentElements) {
   return row;
 }
 
-function createCompactTailRow(config, field, segmentElements, width) {
+function createCompactTailRow(config, field, segmentElements, width, options = {}) {
   const rowStart = Math.floor(field.start / config.bytesPerRow) * config.bytesPerRow;
   const prefixOffsets = Array.from(
     { length: field.start - rowStart },
@@ -1153,6 +1321,7 @@ function createCompactTailRow(config, field, segmentElements, width) {
         rowStart,
         width,
         segmentElements,
+        options,
       ),
     );
     cursor = segmentEnd + 1;
@@ -1190,7 +1359,7 @@ function createCompactTailRow(config, field, segmentElements, width) {
   return row;
 }
 
-function renderRows(parent, config, segmentElements) {
+function renderRows(parent, config, segmentElements, options = {}) {
   const scroll = createElement("div", "psv-scroll");
   const rows = createElement("div", "psv-rows");
   rows.style.setProperty("--psv-columns", String(config.bytesPerRow));
@@ -1212,7 +1381,7 @@ function renderRows(parent, config, segmentElements) {
 
   for (let rowIndex = 0; rowIndex < rowCount; rowIndex += 1) {
     if (compactTail && rowIndex === compactRow) {
-      rows.append(createCompactTailRow(config, compactTail, segmentElements, width));
+      rows.append(createCompactTailRow(config, compactTail, segmentElements, width, options));
       break;
     }
     const collapse = collapsedRows.get(rowIndex);
@@ -1255,6 +1424,7 @@ function renderRows(parent, config, segmentElements) {
           rowStart,
           width,
           segmentElements,
+          options,
         ),
       );
       cursor = segmentEnd + 1;
@@ -1327,7 +1497,7 @@ function compactBitLabels(scope) {
   }
 }
 
-function connectSubfieldZoom(popover, article, schedulePosition) {
+function connectSubfieldZoom(popover, article, schedulePosition, context = {}) {
   const subfields = [...article.querySelectorAll(".psv-subfield-expandable")];
   if (subfields.length === 0) {
     return;
@@ -1388,8 +1558,22 @@ function connectSubfieldZoom(popover, article, schedulePosition) {
     panel.className = `psv-subfield-zoom-panel${colorClass ? ` ${colorClass}` : ""}`;
     name.textContent = subfield.getAttribute("data-psv-subfield-name") || "子字段";
     const detail = subfield.getAttribute("data-psv-subfield-description") || "";
-    description.textContent = detail;
-    description.hidden = !detail;
+    if (detail) {
+      description.replaceChildren();
+      renderMarkdownHelper(
+        context.app,
+        detail,
+        description,
+        context.sourcePath,
+        context.lifecycle,
+      ).then(() => {
+        schedulePosition();
+      });
+      description.hidden = false;
+    } else {
+      description.textContent = "";
+      description.hidden = true;
+    }
     panel.hidden = false;
     schedulePosition();
   };
@@ -1425,7 +1609,7 @@ function connectSubfieldZoom(popover, article, schedulePosition) {
   });
 }
 
-function connectSegments(root, segmentElements, detailElements, lifecycle) {
+function connectSegments(root, segmentElements, detailElements, lifecycle, context = {}) {
   let activeFieldIndex = null;
   let activeAnchor = null;
   let activeSegments = [];
@@ -1513,8 +1697,36 @@ function connectSegments(root, segmentElements, detailElements, lifecycle) {
     article.removeAttribute("tabindex");
     popover.append(article);
     document.body.append(popover);
-    connectSubfieldZoom(popover, article, schedulePosition);
+    connectSubfieldZoom(popover, article, schedulePosition, context);
     schedulePosition();
+
+    popover.addEventListener("click", (event) => {
+      const link = event.target.closest("a.internal-link");
+      if (link) {
+        event.preventDefault();
+        const href = link.getAttribute("data-href");
+        if (href && context.app && context.app.workspace) {
+          context.app.workspace.openLinkText(href, context.sourcePath || "");
+        }
+      }
+    });
+
+    popover.addEventListener("mouseover", (event) => {
+      const link = event.target.closest("a.internal-link");
+      if (link && context.app && context.app.workspace) {
+        const href = link.getAttribute("data-href");
+        if (href) {
+          context.app.workspace.trigger("hover-link", {
+            event,
+            source: "protocol-structure-viewer",
+            hoverParent: popover,
+            targetEl: link,
+            linktext: href,
+            sourcePath: context.sourcePath || "",
+          });
+        }
+      }
+    });
   };
 
   for (const { segment, fieldIndex } of segmentElements) {
@@ -1584,15 +1796,19 @@ function connectSegments(root, segmentElements, detailElements, lifecycle) {
   });
 }
 
-function renderFieldDiagram(parent, config, cleanupScope) {
+function renderFieldDiagram(parent, config, cleanupScope, context = {}) {
   const segmentElements = [];
   const detailElements = new Map();
-  renderRows(parent, config, segmentElements);
-  renderDetails(parent, config, detailElements);
-  connectSegments(parent, segmentElements, detailElements, cleanupScope);
+  const rowOptions = {
+    ...context.settings,
+    bitOrder: config.bitOrder,
+  };
+  renderRows(parent, config, segmentElements, rowOptions);
+  renderDetails(parent, config, detailElements, context);
+  connectSegments(parent, segmentElements, detailElements, cleanupScope, context);
 }
 
-function renderVariantLane(parent, config, variant, cleanupScope) {
+function renderVariantLane(parent, config, variant, cleanupScope, context = {}) {
   const lane = createElement("section", "psv-variant-lane");
   const heading = createElement("header", "psv-lane-header");
   heading.append(createElement("strong", "psv-lane-name", variant.name));
@@ -1601,12 +1817,13 @@ function renderVariantLane(parent, config, variant, cleanupScope) {
     diagram,
     createVariantOverviewConfig(config, variant),
     cleanupScope,
+    context,
   );
   lane.append(heading, diagram);
   parent.append(lane);
 }
 
-function renderVariantSwitcher(root, config, lifecycle, titleGroup) {
+function renderVariantSwitcher(root, config, lifecycle, titleGroup, context = {}) {
   const selectorCrumb = createElement("span", "psv-breadcrumb-item");
   const selectorShell = createElement("span", "psv-select-shell");
   const selectorSizer = createElement("span", "psv-select-sizer");
@@ -1637,7 +1854,7 @@ function renderVariantSwitcher(root, config, lifecycle, titleGroup) {
     if (selector.value === "__all__") {
       const overview = createElement("div", "psv-all-variants");
       for (const variant of config.variants) {
-        renderVariantLane(overview, config, variant, activeScope);
+        renderVariantLane(overview, config, variant, activeScope, context);
       }
       content.append(overview);
       return;
@@ -1652,6 +1869,7 @@ function renderVariantSwitcher(root, config, lifecycle, titleGroup) {
       diagram,
       createViewConfig(config, variant, caseItem),
       activeScope,
+      context,
     );
     content.append(diagram);
   };
@@ -1718,10 +1936,11 @@ function renderVariantSwitcher(root, config, lifecycle, titleGroup) {
   renderSelection();
 }
 
-function renderProtocol(container, config, lifecycle) {
+function renderProtocol(container, config, lifecycle, context = {}) {
   container.replaceChildren();
   const root = createElement("div", "protocol-structure-viewer");
   const header = createElement("header", "psv-header");
+  const bitOrderMeta = config.bitOrder === "lsb" ? " · LSB-first" : "";
   const variantMeta = config.variants.length > 0
     ? ` · ${config.variants.length} 个模式`
     : "";
@@ -1732,15 +1951,15 @@ function renderProtocol(container, config, lifecycle) {
     createElement(
       "span",
       "psv-meta",
-      `${config.size} B · ${config.bytesPerRow} B/行${variantMeta}`,
+      `${config.size} B · ${config.bytesPerRow} B/行${bitOrderMeta}${variantMeta}`,
     ),
   );
   root.append(header);
 
   if (config.variants.length > 0) {
-    renderVariantSwitcher(root, config, lifecycle, titleGroup);
+    renderVariantSwitcher(root, config, lifecycle, titleGroup, context);
   } else {
-    renderFieldDiagram(root, createViewConfig(config), lifecycle);
+    renderFieldDiagram(root, createViewConfig(config), lifecycle, context);
   }
   container.append(root);
 }
@@ -1759,14 +1978,88 @@ function renderError(container, error) {
   container.append(root);
 }
 
+class ProtocolSettingTab extends PluginSettingTab {
+  constructor(app, plugin) {
+    super(app, plugin);
+    this.plugin = plugin;
+  }
+
+  display() {
+    const { containerEl } = this;
+    containerEl.empty();
+
+    new Setting(containerEl)
+      .setName("默认每行字节数")
+      .setDesc("当协议未通过 @row 或 @columns 指令声明时使用的每行字节数。")
+      .addDropdown((dropdown) =>
+        dropdown
+          .addOption("8", "8 字节")
+          .addOption("16", "16 字节（默认）")
+          .addOption("24", "24 字节")
+          .addOption("32", "32 字节")
+          .setValue(String(this.plugin.settings.bytesPerRow))
+          .onChange(async (value) => {
+            this.plugin.settings.bytesPerRow = Number(value);
+            await this.plugin.saveSettings();
+          }),
+      );
+
+    new Setting(containerEl)
+      .setName("默认展开字段说明")
+      .setDesc("协议图下方的“字段说明”详情列表是否默认展开。可在协议中通过 @details open/closed 单独控制。")
+      .addToggle((toggle) =>
+        toggle
+          .setValue(this.plugin.settings.detailsOpen)
+          .onChange(async (value) => {
+            this.plugin.settings.detailsOpen = value;
+            await this.plugin.saveSettings();
+          }),
+      );
+
+    new Setting(containerEl)
+      .setName("显示位域微缩指示条")
+      .setDesc("在单字节字段网格内显示该字节包含的位域分布微缩指示条。")
+      .addToggle((toggle) =>
+        toggle
+          .setValue(this.plugin.settings.showBitPreview)
+          .onChange(async (value) => {
+            this.plugin.settings.showBitPreview = value;
+            await this.plugin.saveSettings();
+          }),
+      );
+
+    new Setting(containerEl)
+      .setName("默认位序方向（Bit Order）")
+      .setDesc("当协议未通过 @bit-order 指令声明时使用的位序。MSB-first（高位在前 7..0）常见于网络大端协议；LSB-first（低位在前 0..7）常见于硬件寄存器与小端总线协议。可在协议中通过 @bit-order lsb-first/msb-first 或字段末尾 @lsb/@msb 单独控制。")
+      .addDropdown((dropdown) =>
+        dropdown
+          .addOption("msb", "MSB-first")
+          .addOption("lsb", "LSB-first")
+          .setValue(this.plugin.settings.bitOrder || "msb")
+          .onChange(async (value) => {
+            this.plugin.settings.bitOrder = value;
+            await this.plugin.saveSettings();
+          }),
+      );
+  }
+}
+
 class ProtocolStructureViewerPlugin extends Plugin {
-  onload() {
+  async onload() {
+    await this.loadSettings();
+    this.addSettingTab(new ProtocolSettingTab(this.app, this));
+
     const processor = (source, element, context) => {
       try {
-        const config = parseProtocol(source);
+        const config = parseProtocol(source, this.settings);
         const lifecycle = new ProtocolRenderLifecycle(element);
         context.addChild(lifecycle);
-        renderProtocol(element, config, lifecycle);
+        renderProtocol(element, config, lifecycle, {
+          app: this.app,
+          sourcePath: context.sourcePath,
+          lifecycle,
+          settings: this.settings,
+        });
       } catch (error) {
         renderError(element, error);
       }
@@ -1775,6 +2068,14 @@ class ProtocolStructureViewerPlugin extends Plugin {
     for (const language of LANGUAGES) {
       this.registerMarkdownCodeBlockProcessor(language, processor);
     }
+  }
+
+  async loadSettings() {
+    this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+  }
+
+  async saveSettings() {
+    await this.saveData(this.settings);
   }
 }
 

@@ -581,6 +581,52 @@
   line-height: 1.5;
 }
 
+.psv-detail-description > p,
+.psv-subfield-zoom-description > p {
+  margin: 0.25rem 0;
+  color: inherit;
+  font-size: inherit;
+  line-height: inherit;
+}
+
+.psv-detail-description > p:first-child,
+.psv-subfield-zoom-description > p:first-child {
+  margin-top: 0;
+}
+
+.psv-detail-description > p:last-child,
+.psv-subfield-zoom-description > p:last-child {
+  margin-bottom: 0;
+}
+
+.psv-detail-description code,
+.psv-subfield-zoom-description code {
+  padding: 0.1em 0.3em;
+  font-size: 0.9em;
+  border-radius: 4px;
+}
+
+.psv-popover a.internal-link,
+.psv-details a.internal-link {
+  color: var(--link-color, var(--text-accent));
+  text-decoration: underline;
+  text-decoration-color: var(--link-decoration-color, transparent);
+  cursor: pointer;
+}
+
+.psv-popover a.internal-link:hover,
+.psv-details a.internal-link:hover {
+  color: var(--link-color-hover, var(--text-accent-hover));
+}
+
+.psv-detail-description ul,
+.psv-detail-description ol,
+.psv-subfield-zoom-description ul,
+.psv-subfield-zoom-description ol {
+  margin: 0.25rem 0;
+  padding-left: 1.25rem;
+}
+
 .psv-detail.psv-detail-flat {
   padding-bottom: 0.35rem;
 }
@@ -631,6 +677,7 @@
 
 .psv-byte-subfield {
   --psv-accent: var(--text-faint);
+  grid-row: 1;
   display: flex;
   min-width: 0;
   padding: 0.38rem 0.3rem;
@@ -723,6 +770,7 @@
 
 .psv-bit-field {
   --psv-accent: var(--text-muted);
+  grid-row: 1;
   display: flex;
   min-width: 0;
   min-height: 3.55rem;
@@ -934,6 +982,7 @@
 
 .psv-stream-field {
   --psv-accent: var(--text-faint);
+  grid-row: 1;
   display: flex;
   min-width: 0;
   padding: 0.35rem 0.25rem;
